@@ -123,22 +123,25 @@ export default async (req: Request, context: Context) => {
       
       const image = sharp(imageBuffer);
       const metadata = await image.metadata();
-      const width = metadata.width || 1024;
-      const height = metadata.height || 1024;
+      
+      // 1. Ensure width and height are strictly numbers
+      const w = Math.round(metadata.width || 1024);
+      const h = Math.round(metadata.height || 1024);
 
+      // 2. Build the brute-force absolute SVG
       const svgBuffer = Buffer.from(`
-        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern id="previa-stock-style" width="300" height="180" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)">
-              <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="70" font-weight="900" fill="rgba(255, 255, 255, 0.35)">PRÉVIA</text>
+            <pattern id="previa-stock" width="350" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)">
+              <text x="175" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="75px" font-weight="bold" fill="rgba(255, 255, 255, 0.4)">PRÉVIA</text>
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#previa-stock-style)" />
+          <rect x="0" y="0" width="100%" height="100%" fill="url(#previa-stock)" />
         </svg>
       `);
 
-      console.log('[WATERMARK_DEBUG]', { width, height, svgSize: svgBuffer.length });
-      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${width}x${height}px.`);
+      console.log('[WATERMARK_DEBUG]', { width: w, height: h, svgSize: svgBuffer.length });
+      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${w}x${h}px.`);
 
       const watermarkedBuffer = await image
         .composite([{ input: svgBuffer, blend: 'over' }])
