@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Config, Context } from "@netlify/functions";
+import sharp from "sharp";
+import path from "path";
 
 // Prompt templates for Avatar themes
 const THEME_PROMPTS: Record<string, string> = {
@@ -114,10 +116,27 @@ export default async (req: Request, context: Context) => {
       throw new Error("The model did not return any image data in its output_image.");
     }
 
-    // Phase 4: Observability [AVATAR_API_SUCCESS]
-    console.log(`[AVATAR_API_SUCCESS] Interaction ID: ${interaction.id || "N/A"}, Generated image data length: ${generatedImageBase64.length} characters.`);
+    // Load and apply the watermark using sharp
+    let watermarkedImageBase64 = "";
+    try {
+      const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
+      const watermarkPath = path.join(process.cwd(), 'public/assets/watermark.png');
+      
+      const watermarkedBuffer = await sharp(imageBuffer)
+        .composite([{ input: watermarkPath, gravity: 'southeast', blend: 'over' }])
+        .toBuffer();
+        
+      watermarkedImageBase64 = watermarkedBuffer.toString('base64');
+    } catch (sharpError) {
+      console.error("[AVATAR_API_ERROR] Sharp watermarking failed:", sharpError);
+      // Fallback to un-watermarked image if watermarking fails so we don't break the user flow
+      watermarkedImageBase64 = generatedImageBase64;
+    }
 
-    return new Response(JSON.stringify({ image: generatedImageBase64 }), {
+    // Phase 4: Observability [AVATAR_API_SUCCESS]
+    console.log(`[AVATAR_API_SUCCESS] Interaction ID: ${interaction.id || "N/A"}, Generated image data length: ${watermarkedImageBase64.length} characters (original: ${generatedImageBase64.length}).`);
+
+    return new Response(JSON.stringify({ image: watermarkedImageBase64 }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

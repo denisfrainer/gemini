@@ -1,9 +1,27 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 
 
 export function AvatarGenerator() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
+  const pixCode = "00020101021126600014br.gov.bcb.pix0138suporte@avatarepico.com52040000530398654044.905802BR5912Avatar Epico6009Sao Paulo62070503pix6304abcd";
+
+  const handleCopyPix = () => {
+    navigator.clipboard.writeText(pixCode);
+    setCopied(true);
+    console.log("[FUNNEL_PIX_COPIED] User copied PIX payload.");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsAppRedirect = () => {
+    console.log("[FUNNEL_WHATSAPP_CLICK] User clicked WhatsApp submission CTA.");
+    const waText = encodeURIComponent("Olá! Acabei de pagar pelo meu Avatar Épico. Aqui está o comprovante:");
+    window.open(`https://wa.me/5511999999999?text=${waText}`, "_blank");
+  };
   
   const [selfie, setSelfie] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string>('linkedin');
@@ -75,22 +93,33 @@ export function AvatarGenerator() {
         }),
       });
 
+      // Check if the content type is actually JSON before parsing
+      const contentType = response.headers.get("content-type");
+      if (!response.ok) {
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Erro na API do Gemini');
+        } else {
+          const textError = await response.text();
+          console.error('[API_HTML_ERROR]', textError);
+          throw new Error('Erro de conexão com o servidor (404/500). Verifique o console.');
+        }
+      }
+
       const data = await response.json();
 
-      if (!response.ok || data.error) {
-        setError(data.error || "Ocorreu um erro ao gerar o avatar. Tente novamente!");
-        setLoading(false);
-        return;
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       if (data.image) {
         setResult(`data:image/jpeg;base64,${data.image}`);
       } else {
-        setError("Ocorreu um erro ao gerar o avatar. Tente novamente!");
+        throw new Error("Ocorreu um erro ao gerar o avatar. Tente novamente!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AVATAR_CLIENT_ERROR]', err);
-      setError("Ocorreu um erro ao gerar o avatar. Tente novamente!");
+      setError(err.message || "Ocorreu um erro ao gerar o avatar. Tente novamente!");
     } finally {
       setLoading(false);
     }
@@ -326,7 +355,10 @@ export function AvatarGenerator() {
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={handleDownload}
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    console.log("[FUNNEL_CHECKOUT_OPEN] User opened the PIX checkout modal.");
+                  }}
                   className="bg-white text-black font-bold py-3 px-8 rounded-full hover:bg-gray-200 transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,6 +377,80 @@ export function AvatarGenerator() {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* PIX Checkout Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+          <div 
+            className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-6 md:p-8 flex flex-col items-center text-center space-y-6 shadow-[0_30px_70px_rgba(0,0,0,0.8)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors p-2 cursor-pointer"
+              aria-label="Fechar modal"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Premium Copywriting */}
+            <div className="space-y-2 mt-2">
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+                Seu Avatar Épico está pronto! 🚀
+              </h2>
+              <p className="text-sm text-gray-400 font-light leading-relaxed">
+                Desbloqueie sua arte em Alta Resolução agora mesmo por apenas <span className="text-white font-bold">R$ 4,90</span>.
+              </p>
+            </div>
+
+            {/* QR Code Container */}
+            <div className="w-48 h-48 bg-white p-3 rounded-2xl border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)] relative flex items-center justify-center">
+              <Image
+                src="/assets/pix-qrcode.png"
+                alt="PIX QR Code"
+                width={192}
+                height={192}
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
+
+            {/* PIX Copy & Paste UI */}
+            <div className="w-full space-y-2">
+              <label className="text-left block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Copia e Cola PIX
+              </label>
+              <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl overflow-hidden p-1.5 focus-within:border-white/20 transition-colors">
+                <input
+                  type="text"
+                  readOnly
+                  value={pixCode}
+                  className="flex-1 bg-transparent border-none text-xs text-gray-300 px-3 outline-none select-all truncate"
+                />
+                <button
+                  onClick={handleCopyPix}
+                  className="bg-white text-black hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-xs transition-colors shrink-0 active:scale-95 cursor-pointer"
+                >
+                  {copied ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            {/* WhatsApp CTA Button */}
+            <button
+              onClick={handleWhatsAppRedirect}
+              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold py-3.5 px-6 rounded-full flex items-center justify-center space-x-2 text-sm active:scale-95 transition-all shadow-[0_0_20px_rgba(37,211,102,0.15)] cursor-pointer"
+            >
+              <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.489.002 9.961-4.47 9.964-9.964.003-2.66-1.033-5.161-2.917-7.047C16.438 1.71 13.932.668 11.23.668 5.748.668 1.282 5.134 1.279 10.62c-.001 1.559.41 3.086 1.192 4.417L1.5 20.25l5.147-1.096z" />
+              </svg>
+              <span>Enviar Comprovante no WhatsApp</span>
+            </button>
+          </div>
         </div>
       )}
     </div>
