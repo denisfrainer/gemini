@@ -121,40 +121,28 @@ export default async (req: Request, context: Context) => {
     try {
       const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
       
-      // Get image dimensions to generate matching SVG canvas
-      const imageMetadata = await sharp(imageBuffer).metadata();
-      const width = imageMetadata.width || 1024;
-      const height = imageMetadata.height || 1024;
+      const image = sharp(imageBuffer);
+      const metadata = await image.metadata(); // Get width and height
+      const width = metadata.width || 1024;
+      const height = metadata.height || 1024;
       
-      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${width}x${height}px.`);
-
-      // Generate dynamic tiling SVG watermark buffer
-      const svgString = `
+      const svgBuffer = Buffer.from(`
         <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
           <style>
-            .title { 
-              fill: #ffffff;
-              fill-opacity: 0.35;
-              font-size: ${Math.round(width * 0.08)}px; 
-              font-weight: 900; 
-              font-family: 'Space Grotesk', system-ui, sans-serif; 
-              letter-spacing: 5px;
-            }
+            .text { fill: rgba(255, 255, 255, 0.35); font-size: 80px; font-weight: bold; font-family: sans-serif; }
           </style>
           <rect width="100%" height="100%" fill="transparent" />
-          <text x="50%" y="22%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
-          <text x="50%" y="50%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
-          <text x="50%" y="78%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+          <text x="${width/2}" y="${Math.round(height * 0.3)}" text-anchor="middle" class="text" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+          <text x="${width/2}" y="${Math.round(height * 0.6)}" text-anchor="middle" class="text" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+          <text x="${width/2}" y="${Math.round(height * 0.9)}" text-anchor="middle" class="text" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
         </svg>
-      `;
-      const svgBuffer = Buffer.from(svgString);
+      `);
 
-      // Apply the composite over the image
-      const watermarkedBuffer = await sharp(imageBuffer)
-        .composite([{ 
-          input: svgBuffer, 
-          blend: 'over' 
-        }])
+      console.log('[WATERMARK_DEBUG]', { width, height, svgSize: svgBuffer.length });
+      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${width}x${height}px.`);
+
+      const watermarkedBuffer = await image
+        .composite([{ input: svgBuffer, blend: 'over' }])
         .toBuffer();
         
       watermarkedImageBase64 = watermarkedBuffer.toString('base64');
