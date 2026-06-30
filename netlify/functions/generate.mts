@@ -122,8 +122,25 @@ export default async (req: Request, context: Context) => {
       const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
       const watermarkPath = path.join(process.cwd(), 'public/assets/watermark.png');
       
+      // Get image width to scale the logo
+      const imageMetadata = await sharp(imageBuffer).metadata();
+      const imageWidth = imageMetadata.width || 1024;
+      const logoWidth = Math.round(imageWidth * 0.4); // 40% of image width
+      
+      console.log(`[WATERMARK_APPLIED] Watermark scaled to 40% of image width (width: ${logoWidth}px).`);
+
+      // Resize the watermark first
+      const logo = await sharp(watermarkPath)
+        .resize({ width: logoWidth })
+        .toBuffer();
+
+      // Apply the composite in the center
       const watermarkedBuffer = await sharp(imageBuffer)
-        .composite([{ input: watermarkPath, tile: true, blend: 'over' }])
+        .composite([{ 
+          input: logo, 
+          gravity: 'center', 
+          blend: 'over' 
+        }])
         .toBuffer();
         
       watermarkedImageBase64 = watermarkedBuffer.toString('base64');
