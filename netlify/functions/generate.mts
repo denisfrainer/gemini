@@ -123,7 +123,7 @@ export default async (req: Request, context: Context) => {
       const watermarkPath = path.join(process.cwd(), 'public/assets/watermark.png');
       
       const watermarkedBuffer = await sharp(imageBuffer)
-        .composite([{ input: watermarkPath, gravity: 'southeast', blend: 'over' }])
+        .composite([{ input: watermarkPath, tile: true, blend: 'over' }])
         .toBuffer();
         
       watermarkedImageBase64 = watermarkedBuffer.toString('base64');
