@@ -122,8 +122,18 @@ export default async (req: Request, context: Context) => {
     let watermarkedImageBase64 = "";
     try {
       const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
-      const cleanBase64 = WATERMARK_BASE64.replace(/^data:image\/\w+;base64,/, "");
+      const cleanBase64 = WATERMARK_BASE64
+        .replace(/^data:image\/\w+;base64,/, "")
+        .replace(/[\r\n\s]+/g, ""); // Removes all hidden spaces/enters
+
       const watermarkBuffer = Buffer.from(cleanBase64, 'base64');
+
+      // Add validation before passing to sharp
+      if (watermarkBuffer.length < 500) {
+         console.error('[WATERMARK_CRITICAL] Buffer is dangerously small. Base64 string is truncated or corrupt.');
+         // Throwing here to ensure we don't pass a broken buffer to sharp, which causes libpng panic
+         throw new Error("Corrupted Base64 Watermark");
+      }
 
       console.log('[WATERMARK_DEBUG] Watermark buffer extracted. Byte length:', watermarkBuffer.length);
       console.log('[WATERMARK_DEBUG] Tiling pre-rendered base64 watermark pattern.');
