@@ -26,6 +26,9 @@ export function AvatarGenerator() {
   const [view, setView] = useState<'input' | 'loading' | 'result'>('input');
   const [isFading, setIsFading] = useState<boolean>(false);
   
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [finalDuration, setFinalDuration] = useState<number>(0);
+  
   const [selfie, setSelfie] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string>('linkedin');
   const [loading, setLoading] = useState<boolean>(false);
@@ -89,9 +92,20 @@ export function AvatarGenerator() {
       return;
     }
 
+    // Viewport Correction: Smooth scroll to top on submit
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     setLoading(true);
     setError(null);
+    setElapsedTime(0);
     transitionTo('loading');
+
+    // Dopamine Loading Ticker (Ticks every 30ms for live decimal display)
+    const startTime = performance.now();
+    const timer = setInterval(() => {
+      const currentElapsed = (performance.now() - startTime) / 1000;
+      setElapsedTime(currentElapsed);
+    }, 30);
 
     try {
       const response = await fetch('/api/generate', {
@@ -125,12 +139,16 @@ export function AvatarGenerator() {
       }
 
       if (data.image) {
+        clearInterval(timer);
+        const totalDuration = Math.round((performance.now() - startTime) / 1000);
+        setFinalDuration(totalDuration);
         setResult(`data:image/jpeg;base64,${data.image}`);
         transitionTo('result');
       } else {
         throw new Error("Ocorreu um erro ao gerar o avatar. Tente novamente!");
       }
     } catch (err: any) {
+      clearInterval(timer);
       console.error('[AVATAR_CLIENT_ERROR]', err);
       setError(err.message || "Ocorreu um erro ao gerar o avatar. Tente novamente!");
       transitionTo('input');
@@ -333,7 +351,9 @@ export function AvatarGenerator() {
             <div className="aspect-square rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,0.02)] max-w-sm mx-auto">
               <div className="w-12 h-12 bg-white/10 rounded-full animate-ping"></div>
             </div>
-            <p className="text-gray-400 text-sm">{"A IA está pintando seu retrato..."}</p>
+            <p className="text-gray-400 text-sm font-semibold tracking-wider">
+              Criando a imagem em <span className="font-mono text-white bg-white/5 px-2 py-1 rounded border border-white/10 shadow-inner">{elapsedTime.toFixed(2)}s</span>
+            </p>
           </div>
         )}
 
@@ -343,8 +363,8 @@ export function AvatarGenerator() {
               <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
                 {"Seu Retrato Está Pronto!"}
               </h2>
-              <p className="text-gray-400 text-sm font-light">
-                {"Confira a prévia do seu avatar personalizado com Inteligência Artificial."}
+              <p className="text-emerald-400 text-sm font-semibold tracking-wide">
+                Imagem gerada em <span className="font-mono">{finalDuration}</span> segundos
               </p>
             </div>
 
