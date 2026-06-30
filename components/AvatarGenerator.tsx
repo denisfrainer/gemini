@@ -7,8 +7,8 @@ import Image from 'next/image';
 export function AvatarGenerator() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  
-  const pixCode = "00020101021126600014br.gov.bcb.pix0138suporte@avatarepico.com52040000530398654044.905802BR5912Avatar Epico6009Sao Paulo62070503pix6304abcd";
+
+  const pixCode = "00020101021126330014br.gov.bcb.pix01110295947403152040000530398654044.995802BR5913DENIS F LOPES6013FLORIANOPOLIS62070503***6304C95B";
 
   const handleCopyPix = () => {
     navigator.clipboard.writeText(pixCode);
@@ -20,8 +20,11 @@ export function AvatarGenerator() {
   const handleWhatsAppRedirect = () => {
     console.log("[FUNNEL_WHATSAPP_CLICK] User clicked WhatsApp submission CTA.");
     const waText = encodeURIComponent("Olá! Acabei de pagar pelo meu Avatar Épico. Aqui está o comprovante:");
-    window.open(`https://wa.me/5511999999999?text=${waText}`, "_blank");
+    window.open(`https://wa.me/5548992123255?text=${waText}`, "_blank");
   };
+
+  const [view, setView] = useState<'input' | 'loading' | 'result'>('input');
+  const [isFading, setIsFading] = useState<boolean>(false);
   
   const [selfie, setSelfie] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string>('linkedin');
@@ -29,6 +32,14 @@ export function AvatarGenerator() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+
+  const transitionTo = (nextView: 'input' | 'loading' | 'result', delay = 350) => {
+    setIsFading(true);
+    setTimeout(() => {
+      setView(nextView);
+      setIsFading(false);
+    }, delay);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +91,7 @@ export function AvatarGenerator() {
 
     setLoading(true);
     setError(null);
+    transitionTo('loading');
 
     try {
       const response = await fetch('/api/generate', {
@@ -114,31 +126,26 @@ export function AvatarGenerator() {
 
       if (data.image) {
         setResult(`data:image/jpeg;base64,${data.image}`);
+        transitionTo('result');
       } else {
         throw new Error("Ocorreu um erro ao gerar o avatar. Tente novamente!");
       }
     } catch (err: any) {
       console.error('[AVATAR_CLIENT_ERROR]', err);
       setError(err.message || "Ocorreu um erro ao gerar o avatar. Tente novamente!");
+      transitionTo('input');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    if (!result) return;
-    const link = document.createElement('a');
-    link.href = result;
-    link.download = `avatar-${selectedTheme}-${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleReset = () => {
-    setSelfie(null);
-    setResult(null);
-    setError(null);
+    transitionTo('input');
+    setTimeout(() => {
+      setSelfie(null);
+      setResult(null);
+      setError(null);
+    }, 350);
   };
 
   const themes = [
@@ -182,208 +189,202 @@ export function AvatarGenerator() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-12">
-      {/* App Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
-          {"Avatar Épico"}
-        </h1>
-        <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto font-light">
-          {"Transforme sua selfie em um retrato épico gerado por Inteligência Artificial."}
-        </p>
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid md:grid-cols-2 gap-8 items-start">
-        
-        {/* Left Side: Upload or Selfie Preview */}
-        <div className="space-y-6">
-          {!selfie ? (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`
-                aspect-square rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300
-                ${isDragOver
-                  ? 'border-[var(--accent-blue)] bg-white/[0.04] scale-[0.98]'
-                  : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.03]'
-                }
-              `}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">{"Arraste sua foto aqui"}</h3>
-              <p className="text-sm text-gray-500">{"Ou clique para selecionar um arquivo"}</p>
+      <div className={`transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+        {view === 'input' && (
+          <div className="space-y-12 animate-[fadeIn_0.5s_ease-out]">
+            {/* App Header */}
+            <div className="text-center space-y-4">
+              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
+                {"Avatar Épico"}
+              </h1>
+              <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto font-light">
+                {"Transforme sua selfie em um retrato épico gerado por Inteligência Artificial."}
+              </p>
             </div>
-          ) : (
-            <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/10 bg-white/[0.02]">
-              <img
-                src={selfie}
-                alt="Selfie"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <button
-                onClick={() => setSelfie(null)}
-                disabled={loading}
-                className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-full border border-white/10 transition-colors"
-                aria-label="Remove image"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="absolute bottom-4 left-4 flex items-center space-x-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-                <span>{"Foto carregada com sucesso!"}</span>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Right Side: Theme Selector & Action */}
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold uppercase tracking-wider text-gray-500">{"Escolha seu Tema"}</h2>
-            
-            <div className="space-y-3">
-              {themes.map((theme) => {
-                const isSelected = selectedTheme === theme.id;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => setSelectedTheme(theme.id)}
-                    disabled={loading}
+            {/* Error Message if any */}
+            {error && (
+              <div className="max-w-md mx-auto bg-red-950/20 border border-red-500/20 p-6 rounded-3xl text-center space-y-4 backdrop-blur-md">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+              </div>
+            )}
+
+            {/* Main Grid */}
+            <div className="grid md:grid-cols-2 gap-8 items-start">
+              {/* Left Side: Upload or Selfie Preview */}
+              <div className="space-y-6">
+                {!selfie ? (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
                     className={`
-                      w-full text-left p-4 rounded-2xl border transition-all duration-300 flex items-center space-x-4 cursor-pointer
-                      ${isSelected
-                        ? `bg-white/[0.04] border-white/20 ring-2 ${theme.activeColor} shadow-[0_0_25px_rgba(255,255,255,0.02)]`
-                        : 'bg-white/[0.01] border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
+                      aspect-square rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300
+                      ${isDragOver
+                        ? 'border-[var(--accent-blue)] bg-white/[0.04] scale-[0.98]'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.03]'
                       }
                     `}
                   >
-                    <div className={`p-3 rounded-xl border transition-colors ${isSelected ? 'bg-white/5' : 'bg-white/[0.02]'}`}>
-                      {theme.icon}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold tracking-tight">{theme.name}</h3>
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{theme.description}</p>
+                    <h3 className="text-xl font-bold text-white mb-2">{"Arraste sua foto aqui"}</h3>
+                    <p className="text-sm text-gray-500">{"Ou clique para selecionar um arquivo"}</p>
+                  </div>
+                ) : (
+                  <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/10 bg-white/[0.02]">
+                    <img
+                      src={selfie}
+                      alt="Selfie"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <button
+                      onClick={() => setSelfie(null)}
+                      disabled={loading}
+                      className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-full border border-white/10 transition-colors"
+                      aria-label="Remove image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="absolute bottom-4 left-4 flex items-center space-x-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                      <span>{"Foto carregada com sucesso!"}</span>
                     </div>
-                  </button>
-                );
-              })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side: Theme Selector & Action */}
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-bold uppercase tracking-wider text-gray-500">{"Escolha seu Tema"}</h2>
+
+                  <div className="space-y-3">
+                    {themes.map((theme) => {
+                      const isSelected = selectedTheme === theme.id;
+                      return (
+                        <button
+                          key={theme.id}
+                          onClick={() => setSelectedTheme(theme.id)}
+                          disabled={loading}
+                          className={`
+                            w-full text-left p-4 rounded-2xl border transition-all duration-300 flex items-center space-x-4 cursor-pointer
+                            ${isSelected
+                              ? `bg-white/[0.04] border-white/20 ring-2 ${theme.activeColor} shadow-[0_0_25px_rgba(255,255,255,0.02)]`
+                              : 'bg-white/[0.01] border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
+                            }
+                          `}
+                        >
+                          <div className={`p-3 rounded-xl border transition-colors ${isSelected ? 'bg-white/5' : 'bg-white/[0.02]'}`}>
+                            {theme.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-bold tracking-tight">{theme.name}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{theme.description}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={!selfie || loading}
+                  className={`
+                    w-full py-4 px-6 rounded-full font-bold transition-all duration-300 flex items-center justify-center space-x-2 active:scale-95 cursor-pointer
+                    ${!selfie
+                      ? 'bg-white/5 text-gray-600 cursor-not-allowed border border-white/5'
+                      : loading
+                        ? 'bg-white/10 text-gray-400 border border-white/10 cursor-wait'
+                        : 'bg-white text-black hover:bg-gray-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
+                    }
+                  `}
+                >
+                  <span>{"Gerar Meu Avatar"}</span>
+                </button>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Action Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={!selfie || loading}
-            className={`
-              w-full py-4 px-6 rounded-full font-bold transition-all duration-300 flex items-center justify-center space-x-2 active:scale-95 cursor-pointer
-              ${!selfie
-                ? 'bg-white/5 text-gray-600 cursor-not-allowed border border-white/5'
-                : loading
-                  ? 'bg-white/10 text-gray-400 border border-white/10 cursor-wait'
-                  : 'bg-white text-black hover:bg-gray-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
-              }
-            `}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        {view === 'loading' && (
+          <div className="max-w-md mx-auto space-y-6 text-center py-16 animate-[fadeIn_0.5s_ease-out]">
+            <div className="aspect-square rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,0.02)] max-w-sm mx-auto">
+              <div className="w-12 h-12 bg-white/10 rounded-full animate-ping"></div>
+            </div>
+            <p className="text-gray-400 text-sm">{"A IA está pintando seu retrato..."}</p>
+          </div>
+        )}
+
+        {view === 'result' && result && (
+          <div className="max-w-md mx-auto space-y-8 text-center animate-[fadeIn_0.5s_ease-out]">
+            <div className="space-y-4">
+              <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+                {"Seu Retrato Está Pronto!"}
+              </h2>
+              <p className="text-gray-400 text-sm font-light">
+                {"Confira a prévia do seu avatar personalizado com Inteligência Artificial."}
+              </p>
+            </div>
+
+            <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+              <img
+                src={result}
+                alt="Generated Avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => {
+                  setIsModalOpen(true);
+                  console.log("[FUNNEL_CHECKOUT_OPEN] User opened the PIX checkout modal.");
+                }}
+                className="bg-white text-black font-bold py-3.5 px-8 rounded-full hover:bg-gray-200 transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                <span>{"A IA está pintando seu retrato..."}</span>
-              </>
-            ) : (
-              <span>{"Gerar Meu Avatar"}</span>
-            )}
-          </button>
-        </div>
+                <span>{"Baixar Avatar"}</span>
+              </button>
 
+              <button
+                onClick={handleReset}
+                className="bg-white/5 border border-white/10 text-white font-bold py-3.5 px-8 rounded-full hover:bg-white/10 transition-all duration-300 text-sm cursor-pointer"
+              >
+                {"Criar Novo Avatar"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Output / Result Section */}
-      {(loading || result || error) && (
-        <div className="border-t border-white/10 pt-12 mt-12">
-          
-          {/* Loading Skeleton */}
-          {loading && !result && (
-            <div className="max-w-md mx-auto space-y-6 text-center animate-pulse">
-              <div className="aspect-square rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,0.02)]">
-                <div className="w-12 h-12 bg-white/10 rounded-full animate-ping"></div>
-              </div>
-              <p className="text-gray-400 text-sm">{"A IA está pintando seu retrato..."}</p>
-            </div>
-          )}
-
-          {/* Safety/Policy Error Message */}
-          {error && (
-            <div className="max-w-md mx-auto bg-red-950/20 border border-red-500/20 p-6 rounded-3xl text-center space-y-4 backdrop-blur-md">
-              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
-                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <p className="text-red-300 text-sm leading-relaxed">{error}</p>
-            </div>
-          )}
-
-          {/* Successful Result View */}
-          {result && !loading && (
-            <div className="max-w-md mx-auto space-y-6 text-center">
-              <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
-                <img
-                  src={result}
-                  alt="Generated Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  onClick={() => {
-                    setIsModalOpen(true);
-                    console.log("[FUNNEL_CHECKOUT_OPEN] User opened the PIX checkout modal.");
-                  }}
-                  className="bg-white text-black font-bold py-3 px-8 rounded-full hover:bg-gray-200 transition-all duration-300 flex items-center justify-center space-x-2 text-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>{"Baixar Avatar"}</span>
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  className="bg-white/5 border border-white/10 text-white font-bold py-3 px-8 rounded-full hover:bg-white/10 transition-all duration-300 text-sm cursor-pointer"
-                >
-                  {"Criar Novo Avatar"}
-                </button>
-              </div>
-            </div>
-          )}
-
-        </div>
-      )}
 
       {/* PIX Checkout Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
-          <div 
+          <div
             className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-6 md:p-8 flex flex-col items-center text-center space-y-6 shadow-[0_30px_70px_rgba(0,0,0,0.8)]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -411,7 +412,7 @@ export function AvatarGenerator() {
             {/* QR Code Container */}
             <div className="w-48 h-48 bg-white p-3 rounded-2xl border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)] relative flex items-center justify-center">
               <Image
-                src="/assets/pix-qrcode.png"
+                src="/assets/qrcode.jpg"
                 alt="PIX QR Code"
                 width={192}
                 height={192}
