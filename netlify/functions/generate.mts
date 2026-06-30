@@ -124,19 +124,32 @@ export default async (req: Request, context: Context) => {
       const image = sharp(imageBuffer);
       const metadata = await image.metadata();
       
-      // 1. Ensure width and height are strictly numbers
+      // 1. Ensure dimensions are integers
       const w = Math.round(metadata.width || 1024);
       const h = Math.round(metadata.height || 1024);
 
-      // 2. Build the brute-force absolute SVG
+      // 2. Brute-force generate the text nodes grid
+      let textNodes = '';
+      const stepX = 450; // Horizontal spacing between blocks
+      const stepY = 220; // Vertical spacing between blocks
+
+      // Loop far outside the bounds to cover corners when rotated
+      for (let y = -h; y < h * 2; y += stepY) {
+        for (let x = -w; x < w * 2; x += stepX) {
+          textNodes += `
+            <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="55px" font-weight="900" fill="rgba(255, 255, 255, 0.50)" text-anchor="middle">PRÉVIA EXCLUSIVA</text>
+            <text x="${x}" y="${y + 60}" font-family="Arial, sans-serif" font-size="30px" font-weight="bold" fill="rgba(255, 255, 255, 0.40)" text-anchor="middle">WWW.MINHAFOTOPRO.COM.BR</text>
+            <text x="${x}" y="${y + 105}" font-family="Arial, sans-serif" font-size="22px" font-weight="bold" fill="rgba(255, 255, 255, 0.30)" text-anchor="middle">PROIBIDA A REPRODUÇÃO</text>
+          `;
+        }
+      }
+
+      // 3. Wrap everything in a single rotated group to bypass pattern bugs
       const svgBuffer = Buffer.from(`
-        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="previa-stock" width="350" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)">
-              <text x="175" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="75px" font-weight="bold" fill="rgba(255, 255, 255, 0.4)">PRÉVIA</text>
-            </pattern>
-          </defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="url(#previa-stock)" />
+        <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-35, ${w/2}, ${h/2})">
+            ${textNodes}
+          </g>
         </svg>
       `);
 
