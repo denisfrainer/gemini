@@ -120,25 +120,39 @@ export default async (req: Request, context: Context) => {
     let watermarkedImageBase64 = "";
     try {
       const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
-      const watermarkPath = path.join(process.cwd(), 'public/assets/watermark.png');
       
-      // Get image width to scale the logo
+      // Get image dimensions to generate matching SVG canvas
       const imageMetadata = await sharp(imageBuffer).metadata();
-      const imageWidth = imageMetadata.width || 1024;
-      const logoWidth = Math.round(imageWidth * 0.4); // 40% of image width
+      const width = imageMetadata.width || 1024;
+      const height = imageMetadata.height || 1024;
       
-      console.log(`[WATERMARK_APPLIED] Watermark scaled to 40% of image width (width: ${logoWidth}px).`);
+      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${width}x${height}px.`);
 
-      // Resize the watermark first
-      const logo = await sharp(watermarkPath)
-        .resize({ width: logoWidth })
-        .toBuffer();
+      // Generate dynamic tiling SVG watermark buffer
+      const svgString = `
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <style>
+            .title { 
+              fill: #ffffff;
+              fill-opacity: 0.35;
+              font-size: ${Math.round(width * 0.08)}px; 
+              font-weight: 900; 
+              font-family: 'Space Grotesk', system-ui, sans-serif; 
+              letter-spacing: 5px;
+            }
+          </style>
+          <rect width="100%" height="100%" fill="transparent" />
+          <text x="50%" y="22%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+          <text x="50%" y="50%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+          <text x="50%" y="78%" text-anchor="middle" class="title" transform="rotate(-45 ${width/2} ${height/2})">PRÉVIA</text>
+        </svg>
+      `;
+      const svgBuffer = Buffer.from(svgString);
 
-      // Apply the composite in the center
+      // Apply the composite over the image
       const watermarkedBuffer = await sharp(imageBuffer)
         .composite([{ 
-          input: logo, 
-          gravity: 'center', 
+          input: svgBuffer, 
           blend: 'over' 
         }])
         .toBuffer();
