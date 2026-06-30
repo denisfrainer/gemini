@@ -10,6 +10,8 @@ const THEME_PROMPTS: Record<string, string> = {
   space: "Create a stunning astronaut avatar of the person in the selfie. They should be wearing a detailed white spacesuit with glowing indicators, with a reflection of stars, distant nebulas, and galaxies on their helmet visor. The background is the deep black cosmos with stellar dust. Majestic outer space cinematic lighting, maintaining consistency of the person's face from the selfie."
 };
 
+const WATERMARK_BASE64 = "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";
+
 export default async (req: Request, context: Context) => {
   // CORS Preflight request handling
   if (req.method === "OPTIONS") {
@@ -120,44 +122,16 @@ export default async (req: Request, context: Context) => {
     let watermarkedImageBase64 = "";
     try {
       const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
-      
-      const image = sharp(imageBuffer);
-      const metadata = await image.metadata();
-      
-      // 1. Ensure dimensions are integers
-      const w = Math.round(metadata.width || 1024);
-      const h = Math.round(metadata.height || 1024);
+      const watermarkBuffer = Buffer.from(WATERMARK_BASE64, 'base64');
 
-      // 2. Brute-force generate the text nodes grid
-      let textNodes = '';
-      const stepX = 450; // Horizontal spacing between blocks
-      const stepY = 220; // Vertical spacing between blocks
+      console.log('[WATERMARK_DEBUG] Tiling pre-rendered base64 watermark pattern.');
 
-      // Loop far outside the bounds to cover corners when rotated
-      for (let y = -h; y < h * 2; y += stepY) {
-        for (let x = -w; x < w * 2; x += stepX) {
-          textNodes += `
-            <text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="55px" font-weight="900" fill="rgba(255, 255, 255, 0.50)" text-anchor="middle">PRÉVIA EXCLUSIVA</text>
-            <text x="${x}" y="${y + 60}" font-family="Arial, sans-serif" font-size="30px" font-weight="bold" fill="rgba(255, 255, 255, 0.40)" text-anchor="middle">WWW.MINHAFOTOPRO.COM.BR</text>
-            <text x="${x}" y="${y + 105}" font-family="Arial, sans-serif" font-size="22px" font-weight="bold" fill="rgba(255, 255, 255, 0.30)" text-anchor="middle">PROIBIDA A REPRODUÇÃO</text>
-          `;
-        }
-      }
-
-      // 3. Wrap everything in a single rotated group to bypass pattern bugs
-      const svgBuffer = Buffer.from(`
-        <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-          <g transform="rotate(-35, ${w/2}, ${h/2})">
-            ${textNodes}
-          </g>
-        </svg>
-      `);
-
-      console.log('[WATERMARK_DEBUG]', { width: w, height: h, svgSize: svgBuffer.length });
-      console.log(`[WATERMARK_APPLIED] TILING_SVG method used. Overlay size: ${w}x${h}px.`);
-
-      const watermarkedBuffer = await image
-        .composite([{ input: svgBuffer, blend: 'over' }])
+      const watermarkedBuffer = await sharp(imageBuffer)
+        .composite([{ 
+          input: watermarkBuffer, 
+          tile: true, 
+          blend: 'over' 
+        }])
         .toBuffer();
         
       watermarkedImageBase64 = watermarkedBuffer.toString('base64');
