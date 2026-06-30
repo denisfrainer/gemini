@@ -368,11 +368,35 @@ export function AvatarGenerator() {
               </p>
             </div>
 
-            <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+            {/* Global anti-print styles specific to our secure content */}
+            <style>{`
+              @media print {
+                .anti-print-secure {
+                  display: none !important;
+                }
+              }
+              .anti-touch {
+                -webkit-touch-callout: none !important;
+                -webkit-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+                user-select: none !important;
+              }
+            `}</style>
+
+            <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)] anti-print-secure anti-touch">
               <img
                 src={result}
                 alt="Generated Avatar"
-                className="w-full h-full object-cover"
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+                className="w-full h-full object-cover pointer-events-none"
+              />
+              {/* The Invisible Shield overlay */}
+              <div 
+                className="absolute inset-0 z-10 bg-transparent" 
+                onContextMenu={(e) => e.preventDefault()} 
               />
             </div>
 
